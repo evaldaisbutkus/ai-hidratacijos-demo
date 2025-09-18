@@ -1,0 +1,11 @@
+version: "3.8"
+services:
+  hidr-demo:
+    build: .
+    ports:
+      - "5050:5050"         # naršyklėje eisi į http://localhost:5050
+    env_file:
+      - .env                # pasiims tavo .env kintamuosius
+    volumes:
+      - ./data:/app/data    # kad scenarijai išliktų tarp paleidimų
+    restart: unless-stopped

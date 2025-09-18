@@ -1,0 +1,26 @@
+# Python reikalavimai - requirements.txt
+# Išmanioji Hidratacijos AI Demo
+# MTEP Projektas 10-038-T-0239
+
+# Pagrindinės mašininio mokymosi ir duomenų apdorojimo bibliotekos
+numpy==1.24.3
+pandas==2.0.3
+scikit-learn==1.3.0
+
+# Žiniatinklio aplikacijos karkasas
+Flask==2.3.2
+Flask-CORS==4.0.0
+
+# Papildomos priemonės
+python-dateutil==2.8.2
+pytz==2023.3
+
+# Kūrimo ir testavimo bibliotekos (pasirenkamos)
+pytest==7.4.0
+requests==2.31.0
+
+# Duomenų vizualizacijos bibliotekos (ateities plėtrai)
+matplotlib==3.7.2
+seaborn==0.12.2
+python-dotenv==1.0.1
+gunicorn==20.1.0
