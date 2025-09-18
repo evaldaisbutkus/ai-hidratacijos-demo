@@ -96,7 +96,7 @@ def stress_insights(p: Dict[str, Any]) -> Dict[str, Any]:
     return {"lygis": lygis, "rekomendacijos": tips}
 
 # ----- Flask app -----
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", static_url_path="/static")
 CORS(app)
 
 # Inicijuojame modelį paleidžiant serverį
@@ -111,6 +111,10 @@ ensure_seed()
 def favicon():
     # tuščias atsakymas, kad nelogintų 404
     return ("", 204)
+
+@app.get("/healthz")
+def healthz():
+    return ("ok", 200)
 
 @app.get("/api/health")
 def health():
@@ -180,35 +184,46 @@ def docs():
         }
     })
 
-# ----- Paprasta UI forma (demo) -----
+# ----- Paprasta UI forma (demo) + UI poliravimas -----
 INDEX_HTML = """
 <!doctype html>
-<html lang="lt">
+<html lang="lt" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{app_name}}</title>
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
-         margin:0;background:linear-gradient(180deg,#f8fbff 0%,#eef5ff 100%);}
-    header{padding:24px 20px;background:#0b5cff;color:white}
-    main{padding:24px;max-width:960px;margin:0 auto}
-    .card{background:white;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.07);
-          padding:20px;margin-bottom:20px}
-    label{display:block;margin:8px 0 4px;font-weight:600}
-    input,select{width:100%;padding:10px;border:1px solid #d7e0ef;border-radius:10px}
-    .row{display:flex;gap:12px;flex-wrap:wrap}
-    .row > *{flex:1}
-    button{margin-top:12px;padding:12px 16px;border:0;border-radius:12px;cursor:pointer}
-    .primary{background:#0b5cff;color:#fff}
-    .muted{background:#eef3ff;color:#234}
-    pre{white-space:pre-wrap}
-  </style>
+
+  <!-- Poliruotas stilius + tamsaus režimo palaikymas -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script defer src="{{ url_for('static', filename='theme.js') }}"></script>
+
+  <!-- Screenshot biblioteka -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" referrerpolicy="no-referrer"></script>
+
+  <!-- Minimalus atsarginis stilius, jei style.css nerastų -->
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;margin:0}
+    .container{max-width:980px;margin:0 auto;padding:0 16px}
+    header{padding:20px 0}
+    .header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .title{font-size:22px;font-weight:700}
+    .card{border-radius:16px;padding:18px;margin:18px 0;border:1px solid #e5e7eb;background:#fff}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row>*{flex:1}
+    button{cursor:pointer}
+  </style>
 </head>
 <body>
-  <header><h1>Išmanioji Hidratacija – demo</h1></header>
-  <main>
+  <header class="container">
+    <div class="header">
+      <div class="title">Išmanioji Hidratacija – demo</div>
+      <div class="toolbar">
+        <button id="themeToggle" class="btn btn-secondary" title="Perjungti režimą">🌙</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
     <div class="card">
       <h2>Realiojo laiko prognozė</h2>
       <form id="form">
@@ -220,25 +235,29 @@ INDEX_HTML = """
         <label>Temperatūra (°C)</label><input name="temperatura_c" type="number" value="22" step="0.1">
         <label>Aktyvumas (min)</label><input name="aktyvumas_min" type="number" value="45" step="5">
 
-        <div class="row">
-          <button class="primary" type="submit" id="btnPredict">Skaičiuoti prognozę</button>
-          <button class="muted" type="button" id="btnDocs">API dokumentacija</button>
-          <button class="muted" type="button" id="downloadJSON">Atsisiųsti JSON</button>
-          <button class="muted" type="button" id="printPage">Spausdinti</button>
-          <button class="muted" type="button" id="screenshot">Ekrano kopija</button>
+        <div class="row toolbar" style="margin-top:12px">
+          <button class="btn btn-primary" type="submit" id="btnPredict">⚡ Prognozuoti</button>
+          <button class="btn btn-secondary" type="button" id="btnDocs">📜 API</button>
+          <button class="btn btn-secondary" type="button" id="downloadJSON">⬇️ JSON</button>
+          <button class="btn btn-secondary" type="button" id="printPage">🖨️ Spausdinti</button>
+          <button class="btn btn-secondary" type="button" id="screenshot">📸 Screenshot</button>
         </div>
 
-        <h3>Scenarijai:</h3>
+        <h3 style="margin-top:18px">Scenarijai</h3>
         <div class="row">
           <select id="scenSelect"></select>
-          <button type="button" id="saveScenario">Išsaugoti</button>
-          <button type="button" id="applyScenario">Pritaikyti</button>
-          <button type="button" id="deleteScenario">Ištrinti</button>
+          <button type="button" class="btn btn-secondary" id="saveScenario">💾 Išsaugoti</button>
+          <button type="button" class="btn btn-secondary" id="applyScenario">✅ Pritaikyti</button>
+          <button type="button" class="btn btn-secondary" id="deleteScenario">🗑️ Ištrinti</button>
         </div>
       </form>
     </div>
 
-    <div class="card"><h3>Rezultatas</h3><pre id="out">—</pre></div>
+    <div class="card">
+      <h3>Rezultatas</h3>
+      <pre id="out">—</pre>
+    </div>
+
     <pre id="scenList" style="display:none"></pre>
   </main>
 
@@ -248,7 +267,7 @@ const out = $("#out");
 
 function formToJSON(form){
   const obj = Object.fromEntries(new FormData(form).entries());
-  for(const k in obj){ obj[k] = Number(obj[k]); }
+  for (const k in obj) obj[k] = Number(obj[k]);
   return obj;
 }
 async function api(url, method="GET", body=null){
@@ -256,7 +275,7 @@ async function api(url, method="GET", body=null){
     method, headers: {"Content-Type":"application/json"},
     body: body ? JSON.stringify(body) : null
   });
-  if(!r.ok){ throw new Error(await r.text()); }
+  if(!r.ok) throw new Error(await r.text());
   return await r.json();
 }
 async function predict(){
